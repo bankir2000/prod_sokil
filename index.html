@@ -645,6 +645,12 @@ input[type="number"] { -moz-appearance: textfield; }
   transition: all .15s;
 }
 .btn-history-clear:hover { border-color: var(--danger); color: var(--danger); }
+.date-note {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+  margin: -4px 0 12px;
+}
 .history-empty {
   text-align: center; color: var(--muted);
   font-size: 12px; padding: 10px 0;
@@ -720,6 +726,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <label>ДАТА</label>
       <input type="date" id="date" />
     </div>
+    <div class="date-note" id="dateNote"></div>
     <div class="field-row">
       <label>ПІДРОЗДІЛ</label>
       <div id="unitWrap" style="flex:1">
@@ -863,10 +870,19 @@ function toggleTheme() {
 })();
 
 // ── Дата ──────────────────────────────────────────────
-function todayISO() {
-  const d = new Date();
+const DATA_CUTOFF_HOUR = 6; // from this hour the current day is closed for input
+
+function dateToISO(d) {
   const p = n => String(n).padStart(2,'0');
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+function todayISO() { return dateToISO(new Date()); }
+
+// Earliest date that still accepts data: today before 06:00, tomorrow from 06:00.
+function minAllowedISO() {
+  const now = new Date();
+  const shift = now.getHours() >= DATA_CUTOFF_HOUR ? 1 : 0;
+  return dateToISO(new Date(now.getFullYear(), now.getMonth(), now.getDate() + shift));
 }
 function isoToUa(v) {
   if (!v) return '';
@@ -1206,6 +1222,10 @@ async function sendData() {
   if (!mvgEl  || !mvgEl.value)  { showSend('err','⚠ Оберіть МВГ');          return; }
   if (!fuelEl.value)             { showSend('err','⚠ Оберіть тип пального'); return; }
   if (!dateVal)                  { showSend('err','⚠ Вкажіть дату');          return; }
+  if (dateVal < minAllowedISO()) {
+    showSend('err', `⚠ Ввід закрито. Дані приймаються з ${isoToUa(minAllowedISO())}`);
+    return;
+  }
 
   const noFuel = fuelEl.value === '-';
   if (!noFuel && getInputValue('remain') < 0) {
@@ -1332,15 +1352,44 @@ tick(); setInterval(tick, 30000);
 
 // ── Init ─────────────────────────────────────────────
 const dateInput = document.getElementById('date');
+
+function refreshDateForm() {
+  document.getElementById('missingList').innerHTML = '<div class="msg warn">⏳ завантаження...</div>';
+  loadData();
+  // Оновити вчорашній залишок для поточного МВГ
+  const mvgEl = document.getElementById('mvg');
+  if (mvgEl && mvgEl.value) { fetchPrevRemain(mvgEl.value); }
+}
+
+// Keeps the date field inside the allowed range; returns true if the value was reset.
+function enforceDateLimit() {
+  const min = minAllowedISO();
+  dateInput.min = min;
+  document.getElementById('dateNote').textContent =
+    `Дата не раніше ${isoToUa(min)}. З ${String(DATA_CUTOFF_HOUR).padStart(2,'0')}:00 ввід тільки на наступну добу.`;
+  if (dateInput.value && dateInput.value >= min) return false;
+  dateInput.value = min;
+  return true;
+}
+
 if (dateInput) {
-  dateInput.value = todayISO();
+  enforceDateLimit();
   dateInput.addEventListener('change', () => {
-    document.getElementById('missingList').innerHTML = '<div class="msg warn">⏳ завантаження...</div>';
-    loadData();
-    // Оновити вчорашній залишок для поточного МВГ
-    const mvgEl = document.getElementById('mvg');
-    if (mvgEl && mvgEl.value) { fetchPrevRemain(mvgEl.value); }
+    if (enforceDateLimit()) {
+      showSend('err', `⚠ Ввід закрито. Дані приймаються з ${isoToUa(dateInput.value)}`);
+    }
+    refreshDateForm();
   });
+
+  // The cut-off can pass while the app stays open: switch to the new reporting day.
+  const watchDateLimit = () => {
+    if (enforceDateLimit()) {
+      showSend('err', `⚠ Настав новий звітний день. Дату змінено на ${isoToUa(dateInput.value)} — перевірте введені дані`);
+      refreshDateForm();
+    }
+  };
+  setInterval(watchDateLimit, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) watchDateLimit(); });
 }
 setupAutoClear();
 setupRemainCalc();

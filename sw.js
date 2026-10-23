@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION on every release so installed apps pick up the new files.
-const CACHE_VERSION = 'palyvo-sokil-v1';
+const CACHE_VERSION = 'palyvo-sokil-v2';
 const APP_SHELL = [
   './',
   './index.html',
