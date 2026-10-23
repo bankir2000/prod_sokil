@@ -573,7 +573,7 @@ input[type="number"] { -moz-appearance: textfield; }
 ══════════════════════════════════════ */
 .prev-remain-row {
   display: flex; align-items: center; gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   padding: 10px 12px;
   background: var(--surface2);
   border: 2px solid var(--border);
@@ -587,15 +587,6 @@ input[type="number"] { -moz-appearance: textfield; }
 [data-theme="day"] .prev-remain-row.loaded {
   border-left-color: var(--accent);
 }
-.prev-remain-label {
-  font-family: 'Oswald', sans-serif;
-  font-size: 13px; font-weight: 700;
-  color: var(--muted); letter-spacing: 1px;
-  flex: 1; line-height: 1.3;
-  transition: color .3s;
-}
-.prev-remain-row.loaded .prev-remain-label { color: var(--text2); }
-[data-theme="day"] .prev-remain-row.loaded .prev-remain-label { color: var(--text); }
 .prev-remain-val {
   font-family: 'Share Tech Mono', monospace;
   font-size: 22px; font-weight: bold;
@@ -604,6 +595,7 @@ input[type="number"] { -moz-appearance: textfield; }
 }
 .prev-remain-row.loaded .prev-remain-val { color: var(--accent2); }
 [data-theme="day"] .prev-remain-row.loaded .prev-remain-val { color: var(--accent); }
+.fuel-ctrl input.neg { color: var(--danger); }
 .prev-remain-unit {
   font-size: 11px; color: var(--muted);
   font-family: 'Share Tech Mono', monospace;
@@ -703,59 +695,6 @@ input[type="number"] { -moz-appearance: textfield; }
 .history-badge.unknown { color: #c09010; background: var(--surface); border: 1px solid #c09010; }
 [data-theme="day"] .history-badge.ok { color: var(--accent); background: #e0f0d0; }
 
-/* ══════════════════════════════════════
-   БОЄПРИПАСИ
-══════════════════════════════════════ */
-.ammo-note { font-size: 11px; color: var(--muted); margin: -6px 0 10px; letter-spacing: 1px; min-height: 0; }
-.ammo-note:empty { display: none; }
-.ammo-note.warn { color: #c09010; }
-.ammo-empty {
-  padding: 12px; margin-bottom: 10px; text-align: center;
-  color: var(--muted); font-size: 13px; letter-spacing: 1px;
-  border: 2px dashed var(--border);
-}
-.ammo-item {
-  background: var(--surface2);
-  border: 2px solid var(--border);
-  border-left: 4px solid var(--accent2);
-  border-radius: 2px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
-}
-[data-theme="day"] .ammo-item { border-left-color: var(--accent); background: #f8faf4; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-.ammo-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.ammo-head select { min-width: 0; font-size: 15px; }
-.btn-del {
-  background: var(--surface2); border: 2px solid var(--danger-border);
-  color: var(--danger); width: 46px; height: 46px; flex-shrink: 0;
-  font-size: 20px; cursor: pointer; border-radius: 4px; line-height: 1;
-  font-family: 'Share Tech Mono', monospace;
-  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-}
-.btn-del:active { background: var(--danger-bg); transform: scale(.92); }
-.ammo-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.ammo-field { min-width: 0; }
-.ammo-field-label {
-  font-family: 'Oswald', sans-serif; font-size: 12px; letter-spacing: 1px;
-  color: var(--accent2); margin-bottom: 4px; font-weight: 700;
-  display: flex; justify-content: space-between; align-items: baseline; gap: 4px;
-}
-[data-theme="day"] .ammo-field-label { color: var(--accent); }
-.ammo-prev { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--muted); font-weight: normal; }
-.ammo-ctrl { display: flex; align-items: center; gap: 4px; }
-.ammo-ctrl input[type="number"] { flex: 1; min-width: 0; width: 100%; font-size: 18px; padding: 8px 6px; }
-.ammo-ctrl .btn-pm { width: 34px; height: 46px; font-size: 22px; }
-.btn-add-weapon {
-  width: 100%; padding: 12px; background: transparent;
-  border: 2px dashed var(--border-strong); color: var(--accent2);
-  font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 700;
-  letter-spacing: 2px; cursor: pointer; border-radius: 4px;
-  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-}
-[data-theme="day"] .btn-add-weapon { color: var(--accent); }
-.btn-add-weapon:active { background: var(--surface2); }
-.btn-add-weapon:disabled { opacity: .4; cursor: not-allowed; }
-
 </style>
 </head>
 <body>
@@ -810,6 +749,28 @@ input[type="number"] { -moz-appearance: textfield; }
   <div class="card">
     <div class="section-label">Дані за добу</div>
 
+    <div class="prev-remain-row" id="prevRemainRow">
+      <div style="flex:1">
+        <span class="fuel-name" id="prevRemainLabel">ЗАЛИШОК ЗА ВЧОРА</span>
+      </div>
+      <div>
+        <span class="prev-remain-val" id="prevRemainVal">—</span>
+        <span class="prev-remain-unit"> л</span>
+      </div>
+    </div>
+
+    <div class="fuel-row">
+      <div>
+        <span class="fuel-name">ПРИХІД</span>
+        <span class="fuel-unit">л / добу</span>
+      </div>
+      <div class="fuel-ctrl">
+        <button class="btn-pm" onclick="dec('income')">−</button>
+        <input type="number" id="income" value="" placeholder="0" min="0" step="1">
+        <button class="btn-pm" onclick="inc('income')">+</button>
+      </div>
+    </div>
+
     <div class="fuel-row">
       <div>
         <span class="fuel-name">ВИКОРИСТАНО</span>
@@ -819,14 +780,6 @@ input[type="number"] { -moz-appearance: textfield; }
         <button class="btn-pm" onclick="dec('used')">−</button>
         <input type="number" id="used" value="" placeholder="0" min="0" step="1">
         <button class="btn-pm" onclick="inc('used')">+</button>
-      </div>
-    </div>
-
-    <div class="prev-remain-row" id="prevRemainRow">
-      <div class="prev-remain-label" id="prevRemainLabel">Залишок за вчора, л</div>
-      <div>
-        <span class="prev-remain-val" id="prevRemainVal">—</span>
-        <span class="prev-remain-unit"> л</span>
       </div>
     </div>
 
@@ -841,14 +794,6 @@ input[type="number"] { -moz-appearance: textfield; }
         <button class="btn-pm" onclick="inc('remain')">+</button>
       </div>
     </div>
-  </div>
-
-  <!-- БОЄПРИПАСИ -->
-  <div class="card" id="ammoCard">
-    <div class="section-label">Боєприпаси</div>
-    <div class="ammo-note" id="ammoNote"></div>
-    <div id="ammoList"></div>
-    <button class="btn-add-weapon" id="btnAddWeapon" onclick="addAmmoRow()" disabled>+ ДОДАТИ ЗБРОЮ</button>
   </div>
 
   <button class="btn-submit" id="btnSend" onclick="sendData()" disabled>
@@ -890,7 +835,7 @@ input[type="number"] { -moz-appearance: textfield; }
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO1AC3AwKnJ6J-KHEiBWBZXp3FfUlKpj8CkjB4U03h6RukQA1PfzSdM-G05xaWp44VmA/exec';
 // ═══════════════════════════════════════════════════════
 
-const FIELDS = ['used', 'remain'];
+const FIELDS = ['income', 'used', 'remain'];
 const API_KEY = 'BK2026';
 const STORAGE_UNIT_KEY = 'fuel_selected_unit';
 const STORAGE_MVG_KEY  = 'fuel_selected_mvg';
@@ -939,12 +884,47 @@ function getInputValue(id) {
 function inc(id) {
   const e = document.getElementById(id);
   e.value = getInputValue(id) + 1;
+  onFieldStep(id);
 }
 
 function dec(id) {
   const e = document.getElementById(id);
   const val = getInputValue(id);
   e.value = val > 0 ? val - 1 : '';
+  onFieldStep(id);
+}
+
+// ── Розрахунок залишку: вчора + прихід − використано ──
+let prevRemainNum = null;   // null → no data for yesterday, auto-calc disabled
+let remainTouched = false;  // true → user edited "remain" by hand
+
+function todayUa() { return isoToUa(todayISO()); }
+
+function recalcFuelRemain() {
+  if (prevRemainNum === null) return;
+  const el = document.getElementById('remain');
+  const result = Math.round((prevRemainNum + getInputValue('income') - getInputValue('used')) * 100) / 100;
+  el.value = result === 0 ? '' : String(result);
+  el.classList.toggle('neg', result < 0);
+}
+
+function onFieldStep(id) {
+  if (id === 'remain') { remainTouched = true; return; }
+  remainTouched = false;
+  recalcFuelRemain();
+}
+
+function setupRemainCalc() {
+  ['income', 'used'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      remainTouched = false;
+      recalcFuelRemain();
+    });
+  });
+  document.getElementById('remain').addEventListener('input', function() {
+    remainTouched = true;
+    this.classList.toggle('neg', parseFloat(this.value) < 0);
+  });
 }
 
 function setupAutoClear() {
@@ -1015,17 +995,15 @@ function renderHistory() {
     + history.map(e => {
         const statusClass = e.status === 'ok' ? 'ok' : 'err';
         const statusLabel = e.status === 'ok' ? '✓ ОК' : e.status === 'unknown' ? '⚠ ?' : '✗ ЗБІЙ';
+        const incomeStr = e.income != null ? `прихід: <strong>${e.income} л</strong>` : '';
         const usedStr   = e.used   != null ? `використано: <strong>${e.used} л</strong>` : '';
         const remainStr = e.remain != null ? `залишок: <strong>${e.remain} л</strong>`   : '';
-        const dataStr   = [usedStr, remainStr].filter(Boolean).join(' · ');
-        const ammoStr   = Array.isArray(e.ammo) && e.ammo.length
-          ? '<br>' + e.ammo.map(a => `${esc(a.cal)}: витрата <strong>${a.used}</strong> · залишок <strong>${a.remain}</strong>`).join('<br>')
-          : '';
+        const dataStr   = [incomeStr, usedStr, remainStr].filter(Boolean).join(' · ');
         return `<div class="history-item ${statusClass}">
           <span class="history-time">${e.time}</span>
           <span class="history-body">
             <strong>${e.unit}</strong> · ${e.mvg} · ${e.fuel}<br>
-            ${dataStr}${ammoStr}
+            ${dataStr}
           </span>
           <span class="history-badge ${statusClass}">${statusLabel}</span>
         </div>`;
@@ -1071,8 +1049,8 @@ function renderUnitSelect(units) {
     // Скинути вчорашній залишок поки МВГ не вибрано
     document.getElementById('prevRemainRow').classList.remove('loaded');
     document.getElementById('prevRemainVal').textContent = '—';
-    document.getElementById('prevRemainLabel').textContent = 'Залишок за вчора, л';
-    resetAmmo();
+    document.getElementById('prevRemainLabel').textContent = 'ЗАЛИШОК ЗА ВЧОРА';
+    prevRemainNum = null;
   });
 }
 
@@ -1086,6 +1064,7 @@ async function fetchPrevRemain(mvgName) {
   // Скинути стан
   row.classList.remove('loaded');
   val.textContent = '…';
+  prevRemainNum = null;
 
   if (!mvgName) { val.textContent = '—'; return; }
 
@@ -1100,11 +1079,13 @@ async function fetchPrevRemain(mvgName) {
     const data = await res.json();
 
     if (data.remain !== null && data.remain !== undefined) {
-      label.textContent = `Залишок за ${data.prevDate}, л`;
+      label.textContent = `ЗАЛИШОК ЗА ${data.prevDate}`;
       val.textContent   = Number(data.remain).toFixed(1);
       row.classList.add('loaded');
+      prevRemainNum = Number(data.remain);
+      if (!remainTouched) recalcFuelRemain();
     } else {
-      label.textContent = `Залишок за ${data.prevDate || 'вчора'}, л`;
+      label.textContent = `ЗАЛИШОК ЗА ${data.prevDate || 'ВЧОРА'}`;
       val.textContent   = 'немає даних';
     }
   } catch(e) {
@@ -1118,7 +1099,6 @@ function renderMvgSelect(mvgs) {
   if (!mvgs || mvgs.length === 0) {
     wrap.innerHTML = '<div class="skel" id="mvgSkel">— спочатку підрозділ —</div>';
     document.getElementById('btnSend').disabled = true;
-    resetAmmo();
     return;
   }
 
@@ -1143,310 +1123,14 @@ function renderMvgSelect(mvgs) {
   if (saved && mvgs.includes(saved)) {
     sel.value = saved;
     fetchPrevRemain(saved);
-    loadAmmoForMvg(saved);
-  } else {
-    resetAmmo();
   }
 
   sel.addEventListener('change', function() {
     saveMvg(this.value);
     fetchPrevRemain(this.value);
-    loadAmmoForMvg(this.value);
   });
 
   document.getElementById('btnSend').disabled = false;
-}
-
-// ── Боєприпаси ───────────────────────────────────────
-const AMMO_STORAGE_KEY = 'ammo_weapons_v1';
-// Резервний список (якщо довідник з листа «Калібр» не завантажився)
-const BASE_CALIBERS = ['35 мм', '23 мм', '14,5 мм', '12,7 мм', 'ПЗРК "Ігла"', 'ПЗРК "Гром"', 'НБЖ', 'ПЗРК', 'ПЗРК "FIM-92 stinger"', 'ПЗРК "Stinger"'];
-let knownCalibers = BASE_CALIBERS.slice();
-
-// Довідник калібрів: лист «Калібр», діапазон A2:A20 (віддає Apps Script, action=calibers)
-async function loadCalibers() {
-  try {
-    const res  = await fetch(`${SCRIPT_URL}?action=calibers&apiKey=${API_KEY}`, { cache: 'no-store' });
-    const data = await res.json();
-    const arr  = Array.isArray(data.calibers) ? data.calibers : (Array.isArray(data.items) ? data.items : null);
-    if (!arr) return;
-    const list = [];
-    arr.forEach(c => { c = String(c == null ? '' : c).trim(); if (c && !list.includes(c)) list.push(c); });
-    if (list.length) { knownCalibers = list; renderAmmo(); }
-  } catch(e) { console.error('calibers error:', e); }
-}
-let ammoRows    = [];
-let ammoSeq     = 0;
-let ammoToken   = 0;
-let ammoPrevMap = {};
-
-function esc(v) {
-  return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-function currentMvg() {
-  const e = document.getElementById('mvg');
-  return e ? e.value : '';
-}
-function addKnownCaliber(c) {
-  c = String(c || '').trim();
-  if (c && !knownCalibers.includes(c)) knownCalibers.push(c);
-}
-function newAmmoRow(cal) {
-  return { id: ++ammoSeq, cal: cal || '', used: '0', remain: '', prev: null, touched: false };
-}
-
-// збережений список зброї для кожного МВГ
-function loadAmmoStore() {
-  try { return JSON.parse(localStorage.getItem(AMMO_STORAGE_KEY)) || {}; } catch(e) { return {}; }
-}
-function getSavedWeapons(mvg) {
-  const s = loadAmmoStore();
-  return Array.isArray(s[mvg]) ? s[mvg] : [];
-}
-function saveWeapons(mvg) {
-  if (!mvg) return;
-  const s = loadAmmoStore();
-  s[mvg] = ammoRows.map(r => r.cal).filter(Boolean);
-  try { localStorage.setItem(AMMO_STORAGE_KEY, JSON.stringify(s)); } catch(e) {}
-}
-
-// залишок = залишок за попередній день − витрата (поки не змінено вручну)
-function recalcRemain(r) {
-  if (r.touched || r.prev === null || r.prev === undefined) return;
-  const used = parseFloat(r.used) || 0;
-  r.remain = String(Math.max(r.prev - used, 0));
-}
-
-function setAmmoNote(text, warn) {
-  const el = document.getElementById('ammoNote');
-  if (!el) return;
-  el.textContent = text || '';
-  el.className = 'ammo-note' + (warn ? ' warn' : '');
-}
-
-function ammoCtrl(r, key) {
-  const wrap  = document.createElement('div');
-  wrap.className = 'ammo-ctrl';
-
-  const minus = document.createElement('button');
-  minus.type = 'button'; minus.className = 'btn-pm'; minus.textContent = '−';
-  const plus  = document.createElement('button');
-  plus.type = 'button';  plus.className  = 'btn-pm'; plus.textContent  = '+';
-
-  const inp = document.createElement('input');
-  inp.type = 'number'; inp.min = '0'; inp.step = '1';
-  inp.setAttribute('inputmode', 'numeric');
-  inp.id = `ammo-${key}-${r.id}`;
-  inp.placeholder = '0';
-  inp.value = r[key];
-
-  inp.addEventListener('focus', () => { if (inp.value === '0') inp.value = ''; });
-  inp.addEventListener('input', () => {
-    r[key] = inp.value;
-    if (key === 'used') {
-      recalcRemain(r);
-      const re = document.getElementById('ammo-remain-' + r.id);
-      if (re) re.value = r.remain;
-    } else {
-      r.touched = true;
-    }
-  });
-  inp.addEventListener('blur', () => {
-    if (inp.value === '' && key === 'used') {
-      inp.value = '0'; r.used = '0';
-      recalcRemain(r);
-      const re = document.getElementById('ammo-remain-' + r.id);
-      if (re) re.value = r.remain;
-    }
-  });
-
-  const step = d => {
-    const cur = parseFloat(inp.value) || 0;
-    inp.value = String(Math.max(cur + d, 0));
-    inp.dispatchEvent(new Event('input'));
-  };
-  minus.addEventListener('click', () => step(-1));
-  plus.addEventListener('click',  () => step(1));
-
-  wrap.appendChild(minus); wrap.appendChild(inp); wrap.appendChild(plus);
-  return wrap;
-}
-
-function ammoField(r, key, title) {
-  const f  = document.createElement('div');
-  f.className = 'ammo-field';
-  const lb = document.createElement('div');
-  lb.className = 'ammo-field-label';
-  const t  = document.createElement('span');
-  t.textContent = title;
-  lb.appendChild(t);
-  if (key === 'remain' && r.prev !== null && r.prev !== undefined) {
-    const p = document.createElement('span');
-    p.className = 'ammo-prev';
-    p.textContent = 'було: ' + r.prev;
-    lb.appendChild(p);
-  }
-  f.appendChild(lb);
-  f.appendChild(ammoCtrl(r, key));
-  return f;
-}
-
-function buildAmmoItem(r) {
-  const item = document.createElement('div');
-  item.className = 'ammo-item';
-
-  const head = document.createElement('div');
-  head.className = 'ammo-head';
-
-  const sel = document.createElement('select');
-  const ph = document.createElement('option');
-  ph.value = ''; ph.textContent = '— калібр / зброя —';
-  ph.disabled = true; ph.selected = !r.cal;
-  sel.appendChild(ph);
-
-  const list = knownCalibers.slice();
-  if (r.cal && !list.includes(r.cal)) list.push(r.cal);
-  list.forEach(c => {
-    const o = document.createElement('option');
-    o.value = c; o.textContent = c;
-    if (c === r.cal) o.selected = true;
-    sel.appendChild(o);
-  });
-
-  sel.addEventListener('change', () => {
-    const v = sel.value;
-    if (!v) return;
-    if (ammoRows.some(x => x.id !== r.id && x.cal === v)) {
-      alert('Цей калібр уже додано');
-      sel.value = r.cal || '';
-      return;
-    }
-    r.cal = v;
-    if (ammoPrevMap[v] !== undefined) { r.prev = ammoPrevMap[v]; r.touched = false; }
-    else { r.prev = null; }
-    recalcRemain(r);
-    renderAmmo();
-  });
-
-  const del = document.createElement('button');
-  del.type = 'button'; del.className = 'btn-del'; del.textContent = '✕';
-  del.title = 'Прибрати';
-  del.addEventListener('click', () => {
-    ammoRows = ammoRows.filter(x => x.id !== r.id);
-    saveWeapons(currentMvg());
-    renderAmmo();
-  });
-
-  head.appendChild(sel);
-  head.appendChild(del);
-  item.appendChild(head);
-
-  const fields = document.createElement('div');
-  fields.className = 'ammo-fields';
-  fields.appendChild(ammoField(r, 'used',   'ВИТРАТА'));
-  fields.appendChild(ammoField(r, 'remain', 'ЗАЛИШОК'));
-  item.appendChild(fields);
-  return item;
-}
-
-function renderAmmo() {
-  const box = document.getElementById('ammoList');
-  if (!box) return;
-  box.innerHTML = '';
-  if (!ammoRows.length) {
-    const d = document.createElement('div');
-    d.className = 'ammo-empty';
-    d.textContent = currentMvg() ? '— зброю не додано —' : '— спочатку оберіть МВГ —';
-    box.appendChild(d);
-  } else {
-    ammoRows.forEach(r => box.appendChild(buildAmmoItem(r)));
-  }
-  const add = document.getElementById('btnAddWeapon');
-  if (add) add.disabled = !currentMvg();
-}
-
-function addAmmoRow() {
-  if (!currentMvg()) return;
-  ammoRows.push(newAmmoRow(''));
-  renderAmmo();
-}
-
-function resetAmmo() {
-  ammoToken++;
-  ammoRows = [];
-  ammoPrevMap = {};
-  setAmmoNote('');
-  renderAmmo();
-}
-
-// після відправки: витрата → 0, залишок перераховується
-function resetAmmoInputs() {
-  ammoRows.forEach(r => { r.used = '0'; r.touched = false; recalcRemain(r); });
-  renderAmmo();
-}
-
-function collectAmmo() {
-  const items = [];
-  for (const r of ammoRows) {
-    const used = parseFloat(r.used) || 0;
-    const hasRemain = r.remain !== '' && r.remain != null && !isNaN(parseFloat(r.remain));
-    if (!r.cal) {
-      if (used === 0 && !hasRemain) continue;
-      return { error: '⚠ Оберіть калібр у боєприпасах' };
-    }
-    if (!hasRemain) return { error: `⚠ Вкажіть залишок: ${r.cal}` };
-    items.push({ cal: r.cal, used: used, remain: parseFloat(r.remain) });
-  }
-  return { items };
-}
-
-// завантажити зброю МВГ: збережений список + залишки за попередній день з таблиці
-async function loadAmmoForMvg(mvg) {
-  const token = ++ammoToken;
-  ammoPrevMap = {};
-  ammoRows = (mvg ? getSavedWeapons(mvg) : []).map(c => newAmmoRow(c));
-  setAmmoNote(mvg ? '⏳ завантаження залишків...' : '');
-  renderAmmo();
-  if (!mvg) return;
-
-  const dateUa = isoToUa(document.getElementById('date').value) || todayISO().split('-').reverse().join('.');
-  try {
-    const res  = await fetch(
-      `${SCRIPT_URL}?action=prevAmmo&date=${encodeURIComponent(dateUa)}&mvg=${encodeURIComponent(mvg)}&apiKey=${API_KEY}`,
-      { cache: 'no-store' }
-    );
-    const data = await res.json();
-    if (token !== ammoToken) return;
-
-    const items = Array.isArray(data.items) ? data.items : [];
-    items.forEach(it => {
-      it.cal = String(it.cal == null ? '' : it.cal).trim();
-      addKnownCaliber(it.cal);
-      const n = Number(it.remain);
-      if (!isNaN(n)) ammoPrevMap[it.cal] = n;
-    });
-
-    // додати зброю з таблиці, якої ще немає у збереженому списку
-    items.forEach(it => {
-      if (it.cal && !ammoRows.some(r => r.cal === it.cal)) ammoRows.push(newAmmoRow(it.cal));
-    });
-    ammoRows.forEach(r => {
-      if (r.cal && ammoPrevMap[r.cal] !== undefined) {
-        r.prev = ammoPrevMap[r.cal];
-        r.touched = false;
-        recalcRemain(r);
-      }
-    });
-
-    if (data.prevDate && items.length) setAmmoNote('Залишки станом на ' + data.prevDate);
-    else if (data.error)              setAmmoNote('⚠ Залишки не отримано — введіть вручну', true);
-    else                              setAmmoNote(ammoRows.length ? 'Немає даних за попередній день — введіть залишок вручну' : '');
-    renderAmmo();
-  } catch(e) {
-    if (token !== ammoToken) return;
-    console.error('prevAmmo error:', e);
-    setAmmoNote('⚠ Залишки не отримано — введіть вручну', true);
-  }
 }
 
 // ── Відсутні ─────────────────────────────────────────
@@ -1523,10 +1207,11 @@ async function sendData() {
   if (!fuelEl.value)             { showSend('err','⚠ Оберіть тип пального'); return; }
   if (!dateVal)                  { showSend('err','⚠ Вкажіть дату');          return; }
 
-  const ammoRes = collectAmmo();
-  if (ammoRes.error) { showSend('err', ammoRes.error); return; }
-  const ammoPayload = ammoRes.items;
   const noFuel = fuelEl.value === '-';
+  if (!noFuel && getInputValue('remain') < 0) {
+    showSend('err', '⚠ Залишок не може бути від’ємним — перевірте прихід і використано');
+    return;
+  }
 
 
   const payload = {
@@ -1536,9 +1221,9 @@ async function sendData() {
     unit:   unitEl.value,
     mvg:    mvgEl.value,
     fuel:   fuelEl.value,
+    income: noFuel ? 0 : getInputValue('income'),
     used:   noFuel ? 0 : getInputValue('used'),
     remain: noFuel ? 0 : getInputValue('remain'),
-    ammo:   ammoPayload,
   };
 
   document.getElementById('btnSend').disabled = true;
@@ -1552,9 +1237,9 @@ async function sendData() {
     unit:    payload.unit,
     mvg:     payload.mvg,
     fuel:    payload.fuel,
+    income:  payload.income,
     used:    payload.used,
     remain:  payload.remain,
-    ammo:    ammoPayload,
     status:  'pending'
   };
 
@@ -1578,8 +1263,8 @@ async function sendData() {
       saveFuel(payload.fuel);
       historyEntry.status = 'ok';
       FIELDS.forEach(id => { document.getElementById(id).value = ''; });
-      saveWeapons(payload.mvg);
-      resetAmmoInputs();
+      document.getElementById('remain').classList.remove('neg');
+      remainTouched = false;
     } else if (verified === false) {
       showSend('err', `✗ Не записалось · ${payload.mvg} · Спробуйте ще раз`);
       historyEntry.status = 'err';
@@ -1654,10 +1339,11 @@ if (dateInput) {
     loadData();
     // Оновити вчорашній залишок для поточного МВГ
     const mvgEl = document.getElementById('mvg');
-    if (mvgEl && mvgEl.value) { fetchPrevRemain(mvgEl.value); loadAmmoForMvg(mvgEl.value); }
+    if (mvgEl && mvgEl.value) { fetchPrevRemain(mvgEl.value); }
   });
 }
 setupAutoClear();
+setupRemainCalc();
 renderHistory();
 // Зберігати тип пального при зміні
 (function(){
@@ -1673,7 +1359,6 @@ renderHistory();
   }
 })();
 loadData();
-loadCalibers();
 setInterval(loadData, 120000);
 // ── PWA: реєстрація service worker ───────────────────
 if ('serviceWorker' in navigator) {
