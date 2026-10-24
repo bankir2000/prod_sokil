@@ -701,6 +701,27 @@ input[type="number"] { -moz-appearance: textfield; }
 .history-badge.unknown { color: #c09010; background: var(--surface); border: 1px solid #c09010; }
 [data-theme="day"] .history-badge.ok { color: var(--accent); background: #e0f0d0; }
 
+
+/* ══════════════════════════════════════
+   БОЄЗАПАС + АВТО-ЗАЛИШОК (тільки читання)
+══════════════════════════════════════ */
+.fuel-ctrl.ro input {
+  width: auto; flex: 1; min-width: 150px;
+  text-align: right; cursor: default;
+  background: var(--total-bg);
+  border-color: var(--border);
+  color: var(--accent2);
+  pointer-events: none;
+}
+[data-theme="day"] .fuel-ctrl.ro input { color: var(--accent); }
+.fuel-ctrl.ro input.neg { color: var(--danger); }
+.fuel-ctrl.ro { min-width: 160px; }
+.prev-remain-note {
+  font-size: 11px; color: var(--muted);
+  margin: -2px 0 8px; padding-left: 2px;
+}
+.card.dim .fuel-row, .card.dim .prev-remain-row { opacity: .35; pointer-events: none; }
+.ammo-pick { margin-bottom: 10px; }
 </style>
 </head>
 <body>
@@ -708,7 +729,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
   <div class="header">
     <div class="header-left">
-      <div class="header-title">ПАЛИВО <span class="cursor"></span></div>
+      <div class="header-title">СОКІЛ<span class="cursor"></span></div>
     </div>
     <div class="theme-toggle" onclick="toggleTheme()" title="Перемикач день/ніч">
       <div class="toggle-track">
@@ -753,8 +774,8 @@ input[type="number"] { -moz-appearance: textfield; }
   </div>
 
   <!-- ДАНІ -->
-  <div class="card">
-    <div class="section-label">Дані за добу</div>
+  <div class="card" id="fuelCard">
+    <div class="section-label">Паливо за добу</div>
 
     <div class="prev-remain-row" id="prevRemainRow">
       <div style="flex:1">
@@ -793,14 +814,68 @@ input[type="number"] { -moz-appearance: textfield; }
     <div class="fuel-row">
       <div>
         <span class="fuel-name">ЗАЛИШОК</span>
-        <span class="fuel-unit">л на МВГ</span>
+        <span class="fuel-unit">л · авто</span>
       </div>
-      <div class="fuel-ctrl">
-        <button class="btn-pm" onclick="dec('remain')">−</button>
-        <input type="number" id="remain" value="" placeholder="0" min="0" step="1">
-        <button class="btn-pm" onclick="inc('remain')">+</button>
+      <div class="fuel-ctrl ro">
+        <input type="text" id="remain" value="" placeholder="—" readonly tabindex="-1">
       </div>
     </div>
+    <div class="prev-remain-note" id="prevRemainNote"></div>
+  </div>
+
+  <!-- БОЄЗАПАС -->
+  <div class="card" id="ammoCard">
+    <div class="section-label">Боєзапас за добу</div>
+
+    <div class="field-row ammo-pick">
+      <label>КАЛІБР</label>
+      <select id="caliber"><option value="">— оберіть МВГ —</option></select>
+    </div>
+
+    <div class="prev-remain-row" id="prevAmmoRow">
+      <div style="flex:1">
+        <span class="fuel-name" id="prevAmmoLabel">ЗАЛИШОК ЗА ВЧОРА</span>
+      </div>
+      <div>
+        <span class="prev-remain-val" id="prevAmmoVal">—</span>
+        <span class="prev-remain-unit"> шт</span>
+      </div>
+    </div>
+
+    <div class="fuel-row">
+      <div>
+        <span class="fuel-name">ПРИХІД БК</span>
+        <span class="fuel-unit">шт / добу</span>
+      </div>
+      <div class="fuel-ctrl">
+        <button class="btn-pm" onclick="dec('ammoIncome')">−</button>
+        <input type="number" id="ammoIncome" value="" placeholder="0" min="0" step="1">
+        <button class="btn-pm" onclick="inc('ammoIncome')">+</button>
+      </div>
+    </div>
+
+    <div class="fuel-row">
+      <div>
+        <span class="fuel-name">ВИТРАТА БК</span>
+        <span class="fuel-unit">шт / добу</span>
+      </div>
+      <div class="fuel-ctrl">
+        <button class="btn-pm" onclick="dec('ammoUsed')">−</button>
+        <input type="number" id="ammoUsed" value="" placeholder="0" min="0" step="1">
+        <button class="btn-pm" onclick="inc('ammoUsed')">+</button>
+      </div>
+    </div>
+
+    <div class="fuel-row">
+      <div>
+        <span class="fuel-name">ЗАЛИШОК БК</span>
+        <span class="fuel-unit">шт · авто</span>
+      </div>
+      <div class="fuel-ctrl ro">
+        <input type="text" id="ammoRemain" value="" placeholder="—" readonly tabindex="-1">
+      </div>
+    </div>
+    <div class="prev-remain-note" id="prevAmmoNote"></div>
   </div>
 
   <button class="btn-submit" id="btnSend" onclick="sendData()" disabled>
@@ -833,7 +908,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
   <div class="sys-line">
     <span id="clock">—</span>
-    <span>v1.3 · Банкір</span>
+    <span>v1.4 · Банкір</span>
   </div>
 
 </div>
@@ -842,7 +917,9 @@ input[type="number"] { -moz-appearance: textfield; }
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO1AC3AwKnJ6J-KHEiBWBZXp3FfUlKpj8CkjB4U03h6RukQA1PfzSdM-G05xaWp44VmA/exec';
 // ═══════════════════════════════════════════════════════
 
-const FIELDS = ['income', 'used', 'remain'];
+const FIELDS = ['income', 'used', 'ammoIncome', 'ammoUsed'];   // поля вводу (залишки — тільки розрахунок)
+const AMMO_FALLBACK = ['35 мм','23 мм','14,5 мм','12,7 мм','ПЗРК "Ігла"','ПЗРК "Гром"','НБЖ','ПЗРК','ПЗРК "FIM-92 stinger"','ПЗРК "Stinger"'];
+const STORAGE_CAL_KEY = 'fuel_selected_caliber';
 const API_KEY = 'BK2026';
 const STORAGE_UNIT_KEY = 'fuel_selected_unit';
 const STORAGE_MVG_KEY  = 'fuel_selected_mvg';
@@ -910,37 +987,55 @@ function dec(id) {
   onFieldStep(id);
 }
 
-// ── Розрахунок залишку: вчора + прихід − використано ──
-let prevRemainNum = null;   // null → no data for yesterday, auto-calc disabled
-let remainTouched = false;  // true → user edited "remain" by hand
+// ── Розрахунок залишків: вчора + прихід − використано ──
+// Залишки поточної доби рахуються тільки автоматично; ручне редагування заблоковано.
+// state: 'idle' (МВГ не обрано) | 'loading' | 'ok' | 'err'
+let prevFuel = { state: 'idle', val: 0 };
+let prevAmmoMap = {};          // { калібр: залишок | null }
+let prevAmmo = { state: 'idle', val: 0 };
 
 function todayUa() { return isoToUa(todayISO()); }
+const round2 = n => Math.round(n * 100) / 100;
+const fmtNum = n => String(round2(n));
 
 function recalcFuelRemain() {
-  if (prevRemainNum === null) return;
   const el = document.getElementById('remain');
-  const result = Math.round((prevRemainNum + getInputValue('income') - getInputValue('used')) * 100) / 100;
-  el.value = result === 0 ? '' : String(result);
+  if (prevFuel.state !== 'ok') { el.value = ''; el.classList.remove('neg'); return; }
+  const result = round2(prevFuel.val + getInputValue('income') - getInputValue('used'));
+  el.value = fmtNum(result);
+  el.classList.toggle('neg', result < 0);
+}
+
+function recalcAmmoRemain() {
+  const el = document.getElementById('ammoRemain');
+  const cal = document.getElementById('caliber').value;
+  if (!cal || prevAmmo.state !== 'ok') { el.value = ''; el.classList.remove('neg'); return; }
+  const result = Math.round(prevAmmo.val + getInputValue('ammoIncome') - getInputValue('ammoUsed'));
+  el.value = String(result);
   el.classList.toggle('neg', result < 0);
 }
 
 function onFieldStep(id) {
-  if (id === 'remain') { remainTouched = true; return; }
-  remainTouched = false;
-  recalcFuelRemain();
+  if (id === 'income' || id === 'used') recalcFuelRemain();
+  else recalcAmmoRemain();
 }
 
 function setupRemainCalc() {
-  ['income', 'used'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
-      remainTouched = false;
-      recalcFuelRemain();
-    });
+  ['income', 'used'].forEach(id =>
+    document.getElementById(id).addEventListener('input', recalcFuelRemain));
+  ['ammoIncome', 'ammoUsed'].forEach(id =>
+    document.getElementById(id).addEventListener('input', recalcAmmoRemain));
+  document.getElementById('caliber').addEventListener('change', function() {
+    saveCaliber(this.value);
+    applyPrevAmmo();
   });
-  document.getElementById('remain').addEventListener('input', function() {
-    remainTouched = true;
-    this.classList.toggle('neg', parseFloat(this.value) < 0);
-  });
+  document.getElementById('fuel').addEventListener('change', applyFuelMode);
+}
+
+// ВГ без пального: блок палива неактивний
+function applyFuelMode() {
+  const noFuel = document.getElementById('fuel').value === '-';
+  document.getElementById('fuelCard').classList.toggle('dim', noFuel);
 }
 
 function setupAutoClear() {
@@ -965,6 +1060,8 @@ function saveMvg(v)  { if (v) try { localStorage.setItem(STORAGE_MVG_KEY,  v); }
 function getSavedUnit() { try { return localStorage.getItem(STORAGE_UNIT_KEY); } catch(e) { return null; } }
 function getSavedMvg()  { try { return localStorage.getItem(STORAGE_MVG_KEY);  } catch(e) { return null; } }
 function saveFuel(v)    { if (v) try { localStorage.setItem(STORAGE_FUEL_KEY, v); } catch(e){} }
+function saveCaliber(v) { const m = loadCalMap(); const mvg = (document.getElementById('mvg')||{}).value; if (mvg) { m[mvg] = v; try { localStorage.setItem(STORAGE_CAL_KEY, JSON.stringify(m)); } catch(e){} } }
+function loadCalMap() { try { return JSON.parse(localStorage.getItem(STORAGE_CAL_KEY)) || {}; } catch(e) { return {}; } }
 function getSavedFuel() { try { return localStorage.getItem(STORAGE_FUEL_KEY); } catch(e) { return null; } }
 
 // ── Історія відправлень ───────────────────────────────
@@ -1015,11 +1112,14 @@ function renderHistory() {
         const usedStr   = e.used   != null ? `використано: <strong>${e.used} л</strong>` : '';
         const remainStr = e.remain != null ? `залишок: <strong>${e.remain} л</strong>`   : '';
         const dataStr   = [incomeStr, usedStr, remainStr].filter(Boolean).join(' · ');
+        const ammoStr   = e.caliber
+          ? `<br>БК ${e.caliber}: прихід <strong>${e.ammoIncome ?? 0}</strong> · витрата <strong>${e.ammoUsed ?? 0}</strong> · залишок <strong>${e.ammoRemain ?? 0}</strong>`
+          : '';
         return `<div class="history-item ${statusClass}">
           <span class="history-time">${e.time}</span>
           <span class="history-body">
             <strong>${e.unit}</strong> · ${e.mvg} · ${e.fuel}<br>
-            ${dataStr}
+            ${dataStr}${ammoStr}
           </span>
           <span class="history-badge ${statusClass}">${statusLabel}</span>
         </div>`;
@@ -1066,23 +1166,90 @@ function renderUnitSelect(units) {
     document.getElementById('prevRemainRow').classList.remove('loaded');
     document.getElementById('prevRemainVal').textContent = '—';
     document.getElementById('prevRemainLabel').textContent = 'ЗАЛИШОК ЗА ВЧОРА';
-    prevRemainNum = null;
+    resetPrev();
   });
 }
 
 // ── Select МВГ (фільтрований) ─────────────────────────
 // ── Завантажити залишок за вчора ─────────────────────
+function resetPrev() {
+  prevFuel = { state: 'idle', val: 0 };
+  prevAmmo = { state: 'idle', val: 0 };
+  prevAmmoMap = {};
+  document.getElementById('prevRemainVal').textContent = '—';
+  document.getElementById('prevAmmoVal').textContent = '—';
+  document.getElementById('prevRemainRow').classList.remove('loaded');
+  document.getElementById('prevAmmoRow').classList.remove('loaded');
+  document.getElementById('prevRemainNote').textContent = '';
+  document.getElementById('prevAmmoNote').textContent = '';
+  fillCaliberSelect([], '');
+  recalcFuelRemain(); recalcAmmoRemain();
+}
+
+// Список калібрів: з сервера для цього МВГ (ключі ammo), інакше загальний довідник
+function fillCaliberSelect(list, mvgName) {
+  const sel = document.getElementById('caliber');
+  sel.innerHTML = '';
+  if (!mvgName) { sel.innerHTML = '<option value="">— оберіть МВГ —</option>'; return; }
+  const ph = document.createElement('option');
+  ph.value = ''; ph.textContent = '— оберіть калібр —';
+  sel.appendChild(ph);
+  list.forEach(c => { const o = document.createElement('option'); o.value = o.textContent = c; sel.appendChild(o); });
+  const none = document.createElement('option');
+  none.value = '-'; none.textContent = '— без БК —';
+  sel.appendChild(none);
+  const saved = loadCalMap()[mvgName];
+  if (saved && (saved === '-' || list.includes(saved))) sel.value = saved;
+  else if (list.length === 1) sel.value = list[0];
+}
+
+function applyPrevAmmo() {
+  const row = document.getElementById('prevAmmoRow');
+  const val = document.getElementById('prevAmmoVal');
+  const note = document.getElementById('prevAmmoNote');
+  const cal = document.getElementById('caliber').value;
+  row.classList.remove('loaded'); note.textContent = '';
+  if (!cal || cal === '-' || prevFuel.state === 'idle') {
+    prevAmmo = { state: 'idle', val: 0 }; val.textContent = '—';
+  } else if (prevFuel.state === 'err') {
+    prevAmmo = { state: 'err', val: 0 }; val.textContent = '—';
+    note.textContent = '⚠ Залишок за вчора не завантажено — відправка заблокована';
+  } else if (prevFuel.state === 'loading') {
+    prevAmmo = { state: 'loading', val: 0 }; val.textContent = '…';
+  } else {
+    const v = prevAmmoMap[cal];
+    if (v === null || v === undefined) {
+      prevAmmo = { state: 'ok', val: 0 };
+      val.textContent = '0';
+      note.textContent = 'Немає даних за вчора — розрахунок від 0';
+    } else {
+      prevAmmo = { state: 'ok', val: Number(v) };
+      val.textContent = String(Math.round(Number(v)));
+    }
+    row.classList.add('loaded');
+  }
+  recalcAmmoRemain();
+}
+
+// ── Завантажити залишки за вчора (паливо + БК) ───────
+let prevReqId = 0;
 async function fetchPrevRemain(mvgName) {
   const row   = document.getElementById('prevRemainRow');
   const label = document.getElementById('prevRemainLabel');
   const val   = document.getElementById('prevRemainVal');
+  const note  = document.getElementById('prevRemainNote');
+  const reqId = ++prevReqId;
 
-  // Скинути стан
   row.classList.remove('loaded');
+  note.textContent = '';
   val.textContent = '…';
-  prevRemainNum = null;
+  prevFuel = { state: 'loading', val: 0 };
+  prevAmmoMap = {};
+  fillCaliberSelect([], mvgName);
+  recalcFuelRemain();
+  applyPrevAmmo();
 
-  if (!mvgName) { val.textContent = '—'; return; }
+  if (!mvgName) { resetPrev(); return; }
 
   const dateVal = document.getElementById('date').value;
   const dateUa  = isoToUa(dateVal) || todayUa();
@@ -1093,19 +1260,35 @@ async function fetchPrevRemain(mvgName) {
       { cache: 'no-store' }
     );
     const data = await res.json();
+    if (reqId !== prevReqId) return;   // застарілий запит
 
+    // Паливо
+    label.textContent = `ЗАЛИШОК ЗА ${data.prevDate || 'ВЧОРА'}`;
     if (data.remain !== null && data.remain !== undefined) {
-      label.textContent = `ЗАЛИШОК ЗА ${data.prevDate}`;
-      val.textContent   = Number(data.remain).toFixed(1);
-      row.classList.add('loaded');
-      prevRemainNum = Number(data.remain);
-      if (!remainTouched) recalcFuelRemain();
+      prevFuel = { state: 'ok', val: Number(data.remain) };
+      val.textContent = Number(data.remain).toFixed(1);
     } else {
-      label.textContent = `ЗАЛИШОК ЗА ${data.prevDate || 'ВЧОРА'}`;
-      val.textContent   = 'немає даних';
+      prevFuel = { state: 'ok', val: 0 };
+      val.textContent = '0.0';
+      note.textContent = 'Немає даних за вчора — розрахунок від 0';
     }
+    row.classList.add('loaded');
+    recalcFuelRemain();
+
+    // БК: data.ammo = { "14,5 мм": 1740, ... }
+    prevAmmoMap = (data.ammo && typeof data.ammo === 'object') ? data.ammo : {};
+    document.getElementById('prevAmmoLabel').textContent = `ЗАЛИШОК ЗА ${data.prevDate || 'ВЧОРА'}`;
+    const keys = Object.keys(prevAmmoMap);
+    fillCaliberSelect(keys.length ? keys : (refData.calibers && refData.calibers.length ? refData.calibers : AMMO_FALLBACK), mvgName);
+    applyPrevAmmo();
   } catch(e) {
+    if (reqId !== prevReqId) return;
+    prevFuel = { state: 'err', val: 0 };
     val.textContent = '—';
+    note.textContent = '⚠ Не вдалось завантажити залишок за вчора — відправка заблокована';
+    fillCaliberSelect(refData.calibers && refData.calibers.length ? refData.calibers : AMMO_FALLBACK, mvgName);
+    applyPrevAmmo();
+    recalcFuelRemain();
     console.error('prevRemain error:', e);
   }
 }
@@ -1177,7 +1360,7 @@ async function loadData() {
     const data = await res.json();
 
     if (data.units) {
-      refData = { units: data.units, map: data.map || {} };
+      refData = { units: data.units, map: data.map || {}, calibers: data.calibers || [] };
       // Рендер підрозділів тільки при першому завантаженні
       if (!document.getElementById('unit')) {
         renderUnitSelect(data.units);
@@ -1227,12 +1410,26 @@ async function sendData() {
     return;
   }
 
+  const calEl  = document.getElementById('caliber');
   const noFuel = fuelEl.value === '-';
-  if (!noFuel && getInputValue('remain') < 0) {
-    showSend('err', '⚠ Залишок не може бути від’ємним — перевірте прихід і використано');
-    return;
-  }
+  const cal    = calEl.value;
+  const noAmmo = cal === '-';
+  if (!cal) { showSend('err','⚠ Оберіть калібр або «без БК»'); return; }
 
+  if (!noFuel) {
+    if (prevFuel.state !== 'ok') { showSend('err','⚠ Залишок палива за вчора не завантажено — натисніть ще раз після завантаження'); return; }
+    if (getInputValue('remain') < 0 || parseFloat(document.getElementById('remain').value) < 0) {
+      showSend('err', '⚠ Залишок палива не може бути від’ємним — перевірте прихід і використано');
+      return;
+    }
+  }
+  if (!noAmmo) {
+    if (prevAmmo.state !== 'ok') { showSend('err','⚠ Залишок БК за вчора не завантажено'); return; }
+    if (parseFloat(document.getElementById('ammoRemain').value) < 0) {
+      showSend('err', '⚠ Залишок БК не може бути від’ємним — перевірте прихід і витрату БК');
+      return;
+    }
+  }
 
   const payload = {
     apiKey: API_KEY,
@@ -1243,7 +1440,13 @@ async function sendData() {
     fuel:   fuelEl.value,
     income: noFuel ? 0 : getInputValue('income'),
     used:   noFuel ? 0 : getInputValue('used'),
-    remain: noFuel ? 0 : getInputValue('remain'),
+    remain: noFuel ? 0 : (parseFloat(document.getElementById('remain').value) || 0),
+    // боєзапас
+    caliber:     noAmmo ? '' : cal,
+    ammoPrev:    noAmmo ? 0 : prevAmmo.val,
+    ammoIncome:  noAmmo ? 0 : getInputValue('ammoIncome'),
+    ammoUsed:    noAmmo ? 0 : getInputValue('ammoUsed'),
+    ammoRemain:  noAmmo ? 0 : (parseInt(document.getElementById('ammoRemain').value, 10) || 0),
   };
 
   document.getElementById('btnSend').disabled = true;
@@ -1260,6 +1463,10 @@ async function sendData() {
     income:  payload.income,
     used:    payload.used,
     remain:  payload.remain,
+    caliber: payload.caliber,
+    ammoIncome: payload.ammoIncome,
+    ammoUsed:   payload.ammoUsed,
+    ammoRemain: payload.ammoRemain,
     status:  'pending'
   };
 
@@ -1283,8 +1490,7 @@ async function sendData() {
       saveFuel(payload.fuel);
       historyEntry.status = 'ok';
       FIELDS.forEach(id => { document.getElementById(id).value = ''; });
-      document.getElementById('remain').classList.remove('neg');
-      remainTouched = false;
+      recalcFuelRemain(); recalcAmmoRemain();
     } else if (verified === false) {
       showSend('err', `✗ Не записалось · ${payload.mvg} · Спробуйте ще раз`);
       historyEntry.status = 'err';
@@ -1407,6 +1613,7 @@ renderHistory();
     if (fuelEl) fuelEl.value = saved;
   }
 })();
+applyFuelMode();
 loadData();
 setInterval(loadData, 120000);
 // ── PWA: реєстрація service worker ───────────────────
