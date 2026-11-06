@@ -877,6 +877,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <span class="missing-title">⚠ Не надали відомості</span>
       <div style="display:flex;gap:6px">
         <button class="btn-refresh" id="btnShare" onclick="shareMissing()" title="Поділитись списком">📋 Нагадування</button>
+        <button class="btn-refresh" id="btnCopy" onclick="copyMissing()" title="Копіювати нагадування">⧉ Копіювати</button>
         <button class="btn-refresh" id="btnRefresh" onclick="loadData()">↻ ОНОВИТИ</button>
       </div>
     </div>
@@ -1570,12 +1571,12 @@ function showSend(type, msg) {
 }
 
 // ── Поділитись списком відсутніх ─────────────────────
-function shareMissing() {
+function buildMissingText() {
   const chips = document.querySelectorAll('#missingList .missing-chip');
   if (chips.length === 0) {
     const ok = document.querySelector('#missingList .msg.ok');
     if (ok) { alert('✓ Всі МВГ надали відомості'); } else { alert('Список ще не завантажено'); }
-    return;
+    return null;
   }
 
   const dateVal = document.getElementById('date').value;
@@ -1583,10 +1584,41 @@ function shareMissing() {
   const names   = Array.from(chips).map(c => '• ' + c.textContent.trim()).join('\n');
   const count   = chips.length;
 
-  const text =
-    `⚠️ ПАЛИВО/БК · ${dateStr}\n` +
+  return `⚠️ ПАЛИВО/БК · ${dateStr}\n` +
     `Не надали відомості (${count} МВГ):\n` +
     names;
+}
+
+function copyMissing() {
+  const text = buildMissingText();
+  if (!text) return;
+  const btn = document.getElementById('btnCopy');
+  const orig = '⧉ Копіювати';
+  const done = () => {
+    btn.textContent = '✓ Скопійовано';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  };
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;opacity:0;left:-9999px';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    let okCopy = false;
+    try { okCopy = document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+    if (okCopy) done(); else alert(text);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
+function shareMissing() {
+  const text = buildMissingText();
+  if (!text) return;
 
   if (navigator.share) {
     navigator.share({ text }).catch(() => {});
